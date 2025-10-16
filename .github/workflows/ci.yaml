@@ -33,6 +33,11 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
+      - name: Run pre-commit hooks
+        run: |
+          pip install pre-commit
+          pre-commit run --all-files --show-diff-on-failure
+
       - name: Run tests
         run: |
           pytest tests/test_main.py -v --maxfail=1 --disable-warnings --cov=app --cov-report=term-missing
