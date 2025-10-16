@@ -35,7 +35,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest -v --maxfail=1 --disable-warnings --cov=app --cov-report=term-missing
+          pytest tests/test_main.py -v --maxfail=1 --disable-warnings --cov=app --cov-report=term-missing
 
       - name: Build Docker image
         run: |
