@@ -1,33 +1,50 @@
-name: Python CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, development ]
   pull_request:
+    branches: [ main, development ]
 
 jobs:
-  build-lint-test-deploy:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.12'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest flake8
-
-      - name: Lint code
-        run: flake8 .
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
 
       - name: Run tests
-        run: pytest -v
+        run: |
+          pytest -v --maxfail=1 --disable-warnings --cov=app --cov-report=term-missing
 
-      - name: Dummy Deploy
-        run: echo "Deployment stage executed successfully!"
+      - name: Build Docker image
+        run: |
+          docker build -t fastapi-ci-cd:${{ github.sha }} .
+
+      - name: Test Docker container
+        run: |
+          docker run -d -p 8000:8000 --name test-container fastapi-ci-cd:${{ github.sha }}
+          sleep 5
+          docker ps | grep test-container
+          docker logs test-container
+          docker stop test-container
